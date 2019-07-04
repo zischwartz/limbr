@@ -1,0 +1,26 @@
+{
+  "name": "limbr",
+  "version": "1.0.0",
+  "description": "Website for LIMBR Paper",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "parcel src/index.html --no-autoinstall",
+    "build": "NODE_ENV=production parcel build --no-autoinstall --public-url=./ src/index.html -o index.html",
+    "jupyter": "docker run -it --rm -v $PWD/process:/home/jovyan/work --rm -p 8888:8888 jupyter/datascience-notebook start-notebook.sh --NotebookApp.token=''",
+    "deploy": "gh-pages -d dist",
+    "todoprep": "cp src/screenshot.png dist/screenshot.png"
+  },
+  "dependencies": {
+    "d3": "^5.5.0",
+    "evergreen-ui": "^4.17.0",
+    "gh-pages": "^1.2.0",
+    "parcel-globals": "^0.2.3",
+    "react": "^16.8.6",
+    "react-dom": "^16.8.6"
+  },
+  "alias": {
+    "d3": ".parcel-globals/d3.js",
+    "d3Legend": ".parcel-globals/d3Legend.js"
+  }
+}
