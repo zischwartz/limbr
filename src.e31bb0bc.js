@@ -64190,9 +64190,9 @@ var path_to_domain_data = require("../data/DomainsScoresAndPercentilesPathogenic
 
 var graph_config = {
   width: 1000,
-  height: 200,
+  height: 300,
   margin: {
-    left: 20,
+    left: 40,
     right: 20,
     top: 20,
     bottom: 20
@@ -64215,7 +64215,8 @@ function (_React$Component) {
     _this.graph_ref = React.createRef();
     _this.state = {
       gene_names: false,
-      selected_gene: false
+      selected_gene: false,
+      absolute_mode: true
     };
     return _this;
   }
@@ -64247,9 +64248,10 @@ function (_React$Component) {
                 this.svg_g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")"); // setup the x-axis, but don't run it because we don't yet have a domain
 
                 this.svg_g.append("g").attr("id", "x_axis").attr("transform", "translate(0," + height + ")").attr("class", "axis axis--x");
+                this.svg_g.append("g").attr("id", "y_axis").attr("transform", "translate(0," + 0 + ")").attr("class", "axis axis--y");
                 this.onGeneSelect("A1BG"); // console.log(gene_names);
 
-              case 11:
+              case 12:
               case "end":
                 return _context.stop();
             }
@@ -64264,10 +64266,23 @@ function (_React$Component) {
   }, {
     key: "onGeneSelect",
     value: function onGeneSelect(selected_gene) {
-      console.log(selected_gene);
+      var _this2 = this;
+
+      // console.log(selected_gene);
       this.setState({
         selected_gene: selected_gene
+      }, function () {
+        return _this2.renderGraph();
       });
+    }
+  }, {
+    key: "renderGraph",
+    value: function renderGraph() {
+      // console.log(selected_gene);
+      var _this$state = this.state,
+          selected_gene = _this$state.selected_gene,
+          absolute_mode = _this$state.absolute_mode;
+      var running_x = 0;
       var selected_data = this.state.data.filter(function (x) {
         return x["geneName"] === selected_gene;
       }).map(function (x) {
@@ -64275,6 +64290,8 @@ function (_React$Component) {
             sub_region = x.sub_region,
             ChromAndSpan = x.ChromAndSpan,
             mode = x.mode;
+        var X2 = parseFloat(x["X2.5."]);
+        var X9 = parseFloat(x["X97.5."]);
 
         var _ChromAndSpan$split$ = ChromAndSpan.split(":")[1].split("-").map(function (z) {
           return parseInt(z);
@@ -64288,42 +64305,120 @@ function (_React$Component) {
           start: start,
           end: end,
           sub_region: sub_region,
-          mode: mode
+          mode: mode,
+          ChromAndSpan: ChromAndSpan,
+          X9: X9,
+          X2: X2
         };
+      }).sort(function (a, b) {
+        return a.start - b.start;
+      }).map(function (x) {
+        var len = x.end - x.start; //   console.log(len);
+
+        x["len"] = len;
+        x["running_x"] = running_x;
+        running_x += len;
+        return x;
       });
+      var total_len = selected_data.reduce(function (ac, x) {
+        return ac + x.len;
+      }, 0); // console.log(total_len);
+      // hacky, only for absolute mode false
+
       var all_points = selected_data.map(function (z) {
         return [z.start, z.end];
+      }).flat();
+      var all_ci = selected_data.map(function (z) {
+        return [z.X2, z.X9];
       }).flat(); // console.log(selected_data);
 
-      var points_domain = d3.extent(all_points); // give the domain a bit of padding
-      // points_domain[0] -= 250;
-      // points_domain[1] += 250;
+      var points_domain = d3.extent(all_points);
+      var ci_domain = d3.extent(all_ci); // https://bl.ocks.org/mbostock/3808221
 
       var width = graph_config.width,
           height = graph_config.height;
-      var x_scale = d3.scaleLinear().range([0, width]).domain(points_domain);
-      this.svg_g.select("#x_axis").call(d3.axisBottom(x_scale));
-      var spans = this.svg_g.selectAll(".span").data(selected_data).enter().append("g").attr("class", "span");
-      spans.append("rect").attr("y", height / 2).attr("height", height / 2) // .attr("fill", "black")
-      .attr("fill", "white").attr("stroke-width", 1).attr("stroke", "green").attr("width", function (d) {
-        // return x_scale(d.end - d.start);
-        return x_scale(d.end) - x_scale(d.start);
-      }).attr("x", function (d) {
-        return x_scale(d.start);
-      });
+      var x_scale = d3.scaleLinear().range([0, width]);
+      var y_scale = d3.scaleLinear().range([height, 0]).domain(ci_domain);
+
+      if (absolute_mode) {
+        x_scale.domain(points_domain);
+      } else {
+        x_scale.domain([0, total_len]);
+      }
+
+      this.svg_g.select("#x_axis").transition().call(d3.axisBottom(x_scale));
+      this.svg_g.select("#y_axis").transition().call(d3.axisLeft(y_scale)); // DATA JOIN
+      // Join new data with old elements, if any.
+
+      var spans = this.svg_g.selectAll(".span").data(selected_data, function (d) {
+        return d.ChromAndSpan;
+      }); // EXIT
+
+      var spans_exit = spans.exit();
+      spans_exit.select("rect.bar").transition().duration(400).attr("y", 500);
+      spans_exit.transition().duration(400).remove(); // ENTER
+      // Create new elements as needed.
+      //
+      // ENTER + UPDATE
+      // After merging the entered elements with the update selection,
+      // apply operations to both.
+
+      var spans_enter = spans.enter().append("g");
+      spans_enter.append("rect").attr("class", "bar");
+      spans_enter.append("rect").attr("class", "mode_line"); // enter + update
+
+      spans = spans_enter.merge(spans).attr("class", "span");
+      spans.select("rect.bar").attr("y", function (d) {
+        return y_scale(d.X9);
+      }) // .attr("height", 10)
+      .attr("height", function (d) {
+        return y_scale(d.X2) - y_scale(d.X9);
+      }) // .attr("height", d => y_scale(d.X9) - y_scale(d.X2))
+      // .attr("y", height / 2)
+      // .attr("height", height / 2)
+      .attr("fill", "rgb(200, 255, 200)").attr("stroke-width", 1).attr("stroke", "green");
+      spans.select("rect.mode_line").attr("y", function (d) {
+        return y_scale(parseFloat(d.mode));
+      }).attr("height", 2);
+
+      if (absolute_mode) {
+        spans.select("rect.bar").transition().attr("width", function (d) {
+          return x_scale(d.end) - x_scale(d.start);
+        }).attr("x", function (d) {
+          return x_scale(d.start);
+        });
+        spans.select("rect.mode_line").transition().attr("width", function (d) {
+          return x_scale(d.end) - x_scale(d.start);
+        }).attr("x", function (d) {
+          return x_scale(d.start);
+        });
+      } else {
+        spans.select("rect.bar").transition().attr("width", function (d) {
+          return x_scale(d.len);
+        }).attr("x", function (d) {
+          var res = d.running_x;
+          return x_scale(res);
+        });
+        spans.select("rect.mode_line").transition().attr("width", function (d) {
+          return x_scale(d.len);
+        }).attr("x", function (d) {
+          return x_scale(d.running_x);
+        });
+      }
     }
   }, {
     key: "render",
     value: function render() {
-      var _this2 = this;
+      var _this3 = this;
 
-      var _this$state = this.state,
-          data = _this$state.data,
-          gene_names = _this$state.gene_names,
-          selected_gene = _this$state.selected_gene;
+      var _this$state2 = this.state,
+          data = _this$state2.data,
+          gene_names = _this$state2.gene_names,
+          selected_gene = _this$state2.selected_gene,
+          absolute_mode = _this$state2.absolute_mode;
 
       if (!gene_names) {
-        return React.createElement(_evergreenUi.Pane, null, "Loading");
+        return LoadingPane;
       }
 
       return React.createElement(_evergreenUi.Pane, null, React.createElement(_evergreenUi.Pane, {
@@ -64333,23 +64428,35 @@ function (_React$Component) {
         background: "tint1",
         borderBottom: true,
         marginBottom: 8
+      }, React.createElement(_evergreenUi.Pane, {
+        display: "flex",
+        flexDirection: "row"
       }, React.createElement(_evergreenUi.Combobox, {
         items: gene_names,
+        width: "50%",
         onChange: function onChange(selected) {
-          return _this2.onGeneSelect(selected);
+          return _this3.onGeneSelect(selected);
         },
         placeholder: "Gene",
         selectedItem: selected_gene,
         openOnFocus: true,
-        width: "100%",
         autocompleteProps: {
           // Used for the title in the autocomplete.
           title: "Gene"
         }
-      }), React.createElement(_evergreenUi.Pane, {
-        textAlign: "center",
-        marginY: 16
-      }, React.createElement(_evergreenUi.Heading, null, selected_gene || "(Select a Gene)")), React.createElement(_evergreenUi.Pane, {
+      }), React.createElement(_evergreenUi.Button, {
+        appearance: "primary",
+        width: "20%",
+        intent: absolute_mode ? "none" : "success",
+        onClick: function onClick() {
+          // probs need to trigger a rerender of the graph
+          _this3.setState({
+            absolute_mode: !absolute_mode
+          }, function () {
+            _this3.renderGraph();
+          });
+        }
+      }, absolute_mode ? "Absolute Mode" : "Show Introns")), React.createElement(_evergreenUi.Pane, {
         display: "flex",
         justifyContent: "center"
       }, React.createElement("div", {
@@ -64413,6 +64520,27 @@ function get_unique_gene_names(data) {
   });
   return Object.keys(res);
 }
+
+var LoadingPane = React.createElement(_evergreenUi.Pane, {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "tint2",
+  border: "muted",
+  height: "100vh"
+}, React.createElement(_evergreenUi.Pane, {
+  elevation: 1,
+  padding: 32,
+  background: "white",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center"
+}, React.createElement(_evergreenUi.Spinner, {
+  size: 16
+}), React.createElement(_evergreenUi.Heading, {
+  size: 600,
+  marginLeft: 8
+}, "Loading...")), React.createElement(_evergreenUi.Pane, null));
 },{"evergreen-ui":"../node_modules/evergreen-ui/esm/index.js","../data/DomainsScoresAndPercentilesPathogenic_7-3-19.txt":"../data/DomainsScoresAndPercentilesPathogenic_7-3-19.txt"}],"index.js":[function(require,module,exports) {
 "use strict";
 
@@ -64463,7 +64591,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "59190" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "50501" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
