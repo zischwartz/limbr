@@ -1,11 +1,11 @@
-import { Button, Combobox, Pane, Heading, Text } from "evergreen-ui";
+import { Button, Combobox, Pane, Heading, Text, Spinner } from "evergreen-ui";
 
 const path_to_domain_data = require("../data/DomainsScoresAndPercentilesPathogenic_7-3-19.txt");
 
 let graph_config = {
   width: 1000,
-  height: 200,
-  margin: { left: 20, right: 20, top: 20, bottom: 20 }
+  height: 300,
+  margin: { left: 40, right: 20, top: 20, bottom: 20 }
 };
 graph_config.width =
   graph_config.width - graph_config.margin.left - graph_config.margin.right;
@@ -16,7 +16,11 @@ export default class App extends React.Component {
   constructor(props) {
     super(props);
     this.graph_ref = React.createRef();
-    this.state = { gene_names: false, selected_gene: false };
+    this.state = {
+      gene_names: false,
+      selected_gene: false,
+      absolute_mode: true
+    };
   }
   async componentDidMount() {
     let data = await d3.tsv(path_to_domain_data);
@@ -37,60 +41,168 @@ export default class App extends React.Component {
       .attr("id", "x_axis")
       .attr("transform", "translate(0," + height + ")")
       .attr("class", "axis axis--x");
+    this.svg_g
+      .append("g")
+      .attr("id", "y_axis")
+      .attr("transform", "translate(0," + 0 + ")")
+      .attr("class", "axis axis--y");
 
     this.onGeneSelect("A1BG");
     // console.log(gene_names);
   }
   onGeneSelect(selected_gene) {
-    console.log(selected_gene);
-    this.setState({ selected_gene });
+    // console.log(selected_gene);
+    this.setState({ selected_gene }, () => this.renderGraph());
+  }
+  renderGraph() {
+    // console.log(selected_gene);
+    let { selected_gene, absolute_mode } = this.state;
+    let running_x = 0;
     let selected_data = this.state.data
       .filter(x => x["geneName"] === selected_gene)
       .map(x => {
         let { geneName, sub_region, ChromAndSpan, mode } = x;
+        let X2 = parseFloat(x["X2.5."]);
+        let X9 = parseFloat(x["X97.5."]);
         let [start, end] = ChromAndSpan.split(":")[1]
           .split("-")
           .map(z => parseInt(z));
-        return { geneName, start, end, sub_region, mode };
+        return { geneName, start, end, sub_region, mode, ChromAndSpan, X9, X2 };
+      })
+      .sort((a, b) => {
+        return a.start - b.start;
+      })
+      .map(x => {
+        let len = x.end - x.start;
+        //   console.log(len);
+        x["len"] = len;
+        x["running_x"] = running_x;
+        running_x += len;
+
+        return x;
       });
+
+    let total_len = selected_data.reduce((ac, x) => ac + x.len, 0);
+    // console.log(total_len);
+    // hacky, only for absolute mode false
     let all_points = selected_data.map(z => [z.start, z.end]).flat();
+    let all_ci = selected_data.map(z => [z.X2, z.X9]).flat();
     // console.log(selected_data);
     let points_domain = d3.extent(all_points);
-    // give the domain a bit of padding
-    // points_domain[0] -= 250;
-    // points_domain[1] += 250;
-    let { width, height } = graph_config;
-    let x_scale = d3
-      .scaleLinear()
-      .range([0, width])
-      .domain(points_domain);
+    let ci_domain = d3.extent(all_ci);
 
-    this.svg_g.select("#x_axis").call(d3.axisBottom(x_scale));
+    // https://bl.ocks.org/mbostock/3808221
+    let { width, height } = graph_config;
+    let x_scale = d3.scaleLinear().range([0, width]);
+    let y_scale = d3
+      .scaleLinear()
+      .range([height, 0])
+      .domain(ci_domain);
+
+    if (absolute_mode) {
+      x_scale.domain(points_domain);
+    } else {
+      x_scale.domain([0, total_len]);
+    }
+
+    this.svg_g
+      .select("#x_axis")
+      .transition()
+      .call(d3.axisBottom(x_scale));
+    this.svg_g
+      .select("#y_axis")
+      .transition()
+      .call(d3.axisLeft(y_scale));
+    // DATA JOIN
+    // Join new data with old elements, if any.
     let spans = this.svg_g
       .selectAll(".span")
-      .data(selected_data)
-      .enter()
-      .append("g")
-      .attr("class", "span");
+      .data(selected_data, d => d.ChromAndSpan);
+
+    // EXIT
+    let spans_exit = spans.exit();
+
+    spans_exit
+      .select("rect.bar")
+      .transition()
+      .duration(400)
+      .attr("y", 500);
+    spans_exit
+      .transition()
+      .duration(400)
+      .remove();
+    // ENTER
+    // Create new elements as needed.
+    //
+    // ENTER + UPDATE
+    // After merging the entered elements with the update selection,
+    // apply operations to both.
+    let spans_enter = spans.enter().append("g");
+    spans_enter.append("rect").attr("class", "bar");
+    spans_enter.append("rect").attr("class", "mode_line");
+    // enter + update
+    spans = spans_enter.merge(spans).attr("class", "span");
 
     spans
-      .append("rect")
-      .attr("y", height / 2)
-      .attr("height", height / 2)
-      // .attr("fill", "black")
-      .attr("fill", "white")
-      .attr("stroke-width", 1)
-      .attr("stroke", "green")
-      .attr("width", d => {
-        // return x_scale(d.end - d.start);
-        return x_scale(d.end) - x_scale(d.start);
+      .select("rect.bar")
+      .attr("y", d => y_scale(d.X9))
+      // .attr("height", 10)
+      .attr("height", d => {
+        return y_scale(d.X2) - y_scale(d.X9);
       })
-      .attr("x", d => x_scale(d.start));
+      // .attr("height", d => y_scale(d.X9) - y_scale(d.X2))
+      // .attr("y", height / 2)
+      // .attr("height", height / 2)
+      .attr("fill", "rgb(200, 255, 200)")
+      .attr("stroke-width", 1)
+      .attr("stroke", "green");
+
+    spans
+      .select("rect.mode_line")
+      .attr("y", d => y_scale(parseFloat(d.mode)))
+      .attr("height", 2);
+
+    if (absolute_mode) {
+      spans
+        .select("rect.bar")
+        .transition()
+        .attr("width", d => {
+          return x_scale(d.end) - x_scale(d.start);
+        })
+        .attr("x", d => x_scale(d.start));
+
+      spans
+        .select("rect.mode_line")
+        .transition()
+        .attr("width", d => {
+          return x_scale(d.end) - x_scale(d.start);
+        })
+        .attr("x", d => x_scale(d.start));
+    } else {
+      spans
+        .select("rect.bar")
+        .transition()
+        .attr("width", d => {
+          return x_scale(d.len);
+        })
+        .attr("x", d => {
+          let res = d.running_x;
+          return x_scale(res);
+        });
+
+      spans
+        .select("rect.mode_line")
+        .transition()
+        .attr("width", d => {
+          return x_scale(d.len);
+        })
+        .attr("x", d => x_scale(d.running_x));
+    }
   }
   render() {
-    let { data, gene_names, selected_gene } = this.state;
+    let { data, gene_names, selected_gene, absolute_mode } = this.state;
     if (!gene_names) {
-      return <Pane>Loading</Pane>;
+      return LoadingPane;
     }
     return (
       <Pane>
@@ -102,21 +214,34 @@ export default class App extends React.Component {
           borderBottom
           marginBottom={8}
         >
-          <Combobox
-            items={gene_names}
-            onChange={selected => this.onGeneSelect(selected)}
-            placeholder="Gene"
-            selectedItem={selected_gene}
-            openOnFocus
-            width="100%"
-            autocompleteProps={{
-              // Used for the title in the autocomplete.
-              title: "Gene"
-            }}
-          />
-          <Pane textAlign="center" marginY={16}>
-            <Heading>{selected_gene || "(Select a Gene)"}</Heading>
+          <Pane display="flex" flexDirection="row">
+            <Combobox
+              items={gene_names}
+              width="50%"
+              onChange={selected => this.onGeneSelect(selected)}
+              placeholder="Gene"
+              selectedItem={selected_gene}
+              openOnFocus
+              autocompleteProps={{
+                // Used for the title in the autocomplete.
+                title: "Gene"
+              }}
+            />
+            <Button
+              appearance="primary"
+              width="20%"
+              intent={absolute_mode ? "none" : "success"}
+              onClick={() => {
+                // probs need to trigger a rerender of the graph
+                this.setState({ absolute_mode: !absolute_mode }, () => {
+                  this.renderGraph();
+                });
+              }}
+            >
+              {absolute_mode ? "Absolute Mode" : "Show Introns"}
+            </Button>
           </Pane>
+
           <Pane display="flex" justifyContent="center">
             <div ref={this.graph_ref} />
           </Pane>
@@ -180,3 +305,29 @@ function get_unique_gene_names(data) {
   });
   return Object.keys(res);
 }
+
+let LoadingPane = (
+  <Pane
+    display="flex"
+    alignItems="center"
+    justifyContent="center"
+    background="tint2"
+    border="muted"
+    height="100vh"
+  >
+    <Pane
+      elevation={1}
+      padding={32}
+      background="white"
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+    >
+      <Spinner size={16} />
+      <Heading size={600} marginLeft={8}>
+        Loading...
+      </Heading>
+    </Pane>
+    <Pane />
+  </Pane>
+);

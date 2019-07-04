@@ -22,5 +22,8 @@
   "alias": {
     "d3": ".parcel-globals/d3.js",
     "d3Legend": ".parcel-globals/d3Legend.js"
+  },
+  "devDependencies": {
+    "cssnano": "^4.1.10"
   }
 }
