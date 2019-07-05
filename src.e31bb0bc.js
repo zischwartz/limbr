@@ -64248,8 +64248,10 @@ function (_React$Component) {
                 this.svg_g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")"); // setup the x-axis, but don't run it because we don't yet have a domain
 
                 this.svg_g.append("g").attr("id", "x_axis").attr("transform", "translate(0," + height + ")").attr("class", "axis axis--x");
-                this.svg_g.append("g").attr("id", "y_axis").attr("transform", "translate(0," + 0 + ")").attr("class", "axis axis--y");
-                this.onGeneSelect("A1BG"); // console.log(gene_names);
+                this.svg_g.append("g").attr("id", "y_axis").attr("transform", "translate(0," + 0 + ")").attr("class", "axis axis--y"); // XXX and just for debug
+                // this.onGeneSelect("A1BG");
+
+                this.onGeneSelect("SCN1A"); // console.log(gene_names);
 
               case 12:
               case "end":
@@ -64278,6 +64280,8 @@ function (_React$Component) {
   }, {
     key: "renderGraph",
     value: function renderGraph() {
+      var _this3 = this;
+
       // console.log(selected_gene);
       var _this$state = this.state,
           selected_gene = _this$state.selected_gene,
@@ -64367,7 +64371,16 @@ function (_React$Component) {
       spans_enter.append("rect").attr("class", "bar");
       spans_enter.append("rect").attr("class", "mode_line"); // enter + update
 
-      spans = spans_enter.merge(spans).attr("class", "span");
+      spans = spans_enter.merge(spans).attr("class", "span"); // console.log("x");
+      // maybe need to rerender graph
+
+      spans.on("click", function (d) {
+        _this3.setState({
+          selected_span: d.ChromAndSpan
+        }, function () {
+          return _this3.renderGraph();
+        });
+      });
       spans.select("rect.bar").attr("y", function (d) {
         return y_scale(d.X9);
       }) // .attr("height", 10)
@@ -64376,7 +64389,10 @@ function (_React$Component) {
       }) // .attr("height", d => y_scale(d.X9) - y_scale(d.X2))
       // .attr("y", height / 2)
       // .attr("height", height / 2)
-      .attr("fill", "rgb(200, 255, 200)").attr("stroke-width", 1).attr("stroke", "green");
+      .attr("fill", function (d) {
+        return _this3.state.selected_span === d.ChromAndSpan ? "rgb(190, 190, 250)" : "rgb(200, 255, 200)";
+      }) // .attr("fill", "rgb(200, 255, 200)")
+      .attr("stroke-width", 1).attr("stroke", "green");
       spans.select("rect.mode_line").attr("y", function (d) {
         return y_scale(parseFloat(d.mode));
       }).attr("height", 2);
@@ -64409,13 +64425,15 @@ function (_React$Component) {
   }, {
     key: "render",
     value: function render() {
-      var _this3 = this;
+      var _this4 = this;
 
+      // prettier-ignore
       var _this$state2 = this.state,
           data = _this$state2.data,
           gene_names = _this$state2.gene_names,
           selected_gene = _this$state2.selected_gene,
-          absolute_mode = _this$state2.absolute_mode;
+          absolute_mode = _this$state2.absolute_mode,
+          selected_span = _this$state2.selected_span;
 
       if (!gene_names) {
         return LoadingPane;
@@ -64435,7 +64453,7 @@ function (_React$Component) {
         items: gene_names,
         width: "50%",
         onChange: function onChange(selected) {
-          return _this3.onGeneSelect(selected);
+          return _this4.onGeneSelect(selected);
         },
         placeholder: "Gene",
         selectedItem: selected_gene,
@@ -64450,10 +64468,10 @@ function (_React$Component) {
         intent: absolute_mode ? "none" : "success",
         onClick: function onClick() {
           // probs need to trigger a rerender of the graph
-          _this3.setState({
+          _this4.setState({
             absolute_mode: !absolute_mode
           }, function () {
-            _this3.renderGraph();
+            _this4.renderGraph();
           });
         }
       }, absolute_mode ? "Absolute Mode" : "Show Introns")), React.createElement(_evergreenUi.Pane, {
@@ -64463,7 +64481,8 @@ function (_React$Component) {
         ref: this.graph_ref
       }))), React.createElement(Table, {
         data: data,
-        selected_gene: selected_gene
+        selected_gene: selected_gene,
+        selected_span: selected_span
       }));
     }
   }]);
@@ -64496,7 +64515,8 @@ function Table(props) {
     return x["geneName"] === props.selected_gene;
   }).map(function (x, i) {
     return React.createElement("tr", {
-      key: i
+      key: i,
+      className: props.selected_span === x.ChromAndSpan ? "selected_span" : ""
     }, keys.map(function (z, j) {
       return React.createElement("td", {
         key: j
@@ -64591,7 +64611,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "50501" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "62632" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
