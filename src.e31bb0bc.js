@@ -64190,12 +64190,12 @@ var path_to_domain_data = require("../data/DomainsScoresAndPercentilesPathogenic
 
 var graph_config = {
   width: 1000,
-  height: 300,
+  height: 350,
   margin: {
     left: 40,
     right: 20,
     top: 20,
-    bottom: 20
+    bottom: 140
   }
 };
 graph_config.width = graph_config.width - graph_config.margin.left - graph_config.margin.right;
@@ -64248,12 +64248,14 @@ function (_React$Component) {
                 this.svg_g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")"); // setup the x-axis, but don't run it because we don't yet have a domain
 
                 this.svg_g.append("g").attr("id", "x_axis").attr("transform", "translate(0," + height + ")").attr("class", "axis axis--x");
-                this.svg_g.append("g").attr("id", "y_axis").attr("transform", "translate(0," + 0 + ")").attr("class", "axis axis--y"); // XXX and just for debug
+                this.svg_g.append("g").attr("id", "y_axis").attr("transform", "translate(0," + 0 + ")").attr("class", "axis axis--y");
+                this.svg_g.append("g").attr("id", "second_y_axis") // .attr("transform", "translate(0," + height + ")")
+                .attr("class", "axis axis--y"); // XXX and just for debug
                 // this.onGeneSelect("A1BG");
 
                 this.onGeneSelect("SCN1A"); // console.log(gene_names);
 
-              case 12:
+              case 13:
               case "end":
                 return _context.stop();
             }
@@ -64293,16 +64295,19 @@ function (_React$Component) {
         var geneName = x.geneName,
             sub_region = x.sub_region,
             ChromAndSpan = x.ChromAndSpan,
-            mode = x.mode;
+            mode = x.mode,
+            ClinVar2Count = x.ClinVar2Count;
         var X2 = parseFloat(x["X2.5."]);
         var X9 = parseFloat(x["X97.5."]);
+        ClinVar2Count = parseInt(ClinVar2Count);
 
         var _ChromAndSpan$split$ = ChromAndSpan.split(":")[1].split("-").map(function (z) {
           return parseInt(z);
         }),
             _ChromAndSpan$split$2 = _slicedToArray(_ChromAndSpan$split$, 2),
             start = _ChromAndSpan$split$2[0],
-            end = _ChromAndSpan$split$2[1];
+            end = _ChromAndSpan$split$2[1]; // prettier-ignore
+
 
         return {
           geneName: geneName,
@@ -64311,14 +64316,14 @@ function (_React$Component) {
           sub_region: sub_region,
           mode: mode,
           ChromAndSpan: ChromAndSpan,
+          ClinVar2Count: ClinVar2Count,
           X9: X9,
           X2: X2
         };
       }).sort(function (a, b) {
         return a.start - b.start;
       }).map(function (x) {
-        var len = x.end - x.start; //   console.log(len);
-
+        var len = x.end - x.start;
         x["len"] = len;
         x["running_x"] = running_x;
         running_x += len;
@@ -64340,9 +64345,19 @@ function (_React$Component) {
       var ci_domain = d3.extent(all_ci); // https://bl.ocks.org/mbostock/3808221
 
       var width = graph_config.width,
-          height = graph_config.height;
+          height = graph_config.height,
+          margin = graph_config.margin;
       var x_scale = d3.scaleLinear().range([0, width]);
       var y_scale = d3.scaleLinear().range([height, 0]).domain(ci_domain);
+      var clinvar_extent = d3.extent(selected_data.map(function (z) {
+        return z.ClinVar2Count;
+      })); // console.log(clinvar_extent);
+      // let second_y_range = [graph_config.margin.bottom - 10, 25];
+
+      var pad = 20;
+      var second_y_range = [height + margin.bottom, height + pad];
+      var second_y_scale = d3.scaleLinear().range(second_y_range) // .range([graph_config.margin.bottom - 10, 25])
+      .domain(clinvar_extent);
 
       if (absolute_mode) {
         x_scale.domain(points_domain);
@@ -64351,10 +64366,12 @@ function (_React$Component) {
       }
 
       this.svg_g.select("#x_axis").transition().call(d3.axisBottom(x_scale));
-      this.svg_g.select("#y_axis").transition().call(d3.axisLeft(y_scale)); // DATA JOIN
+      this.svg_g.select("#y_axis").transition().call(d3.axisLeft(y_scale));
+      this.svg_g.select("#second_y_axis").transition().call(d3.axisLeft(second_y_scale)); // DATA JOIN
       // Join new data with old elements, if any.
 
-      var spans = this.svg_g.selectAll(".span").data(selected_data, function (d) {
+      var spans = this.svg_g.selectAll(".span") // the function is an id function
+      .data(selected_data, function (d) {
         return d.ChromAndSpan;
       }); // EXIT
 
@@ -64369,7 +64386,8 @@ function (_React$Component) {
 
       var spans_enter = spans.enter().append("g");
       spans_enter.append("rect").attr("class", "bar");
-      spans_enter.append("rect").attr("class", "mode_line"); // enter + update
+      spans_enter.append("rect").attr("class", "mode_line");
+      spans_enter.append("rect").attr("class", "pathogenic_variants"); // enter + update
 
       spans = spans_enter.merge(spans).attr("class", "span"); // console.log("x");
       // maybe need to rerender graph
@@ -64380,19 +64398,28 @@ function (_React$Component) {
         }, function () {
           return _this3.renderGraph();
         });
+      }); // second_y_range
+
+      spans.select("rect.pathogenic_variants").attr("y", function (d) {
+        return second_y_scale(d.ClinVar2Count);
+      }).attr("height", function (d) {
+        var c = d.ClinVar2Count; // prettier-ignore
+
+        if (c === 0) {
+          return 0;
+        }
+
+        return second_y_scale(c);
+      }).attr("stroke-width", 1).attr("stroke", "black").attr("fill", function (d) {
+        return _this3.state.selected_span === d.ChromAndSpan ? "rgb(150, 140, 200)" : "rgb(130, 205, 220)";
       });
       spans.select("rect.bar").attr("y", function (d) {
         return y_scale(d.X9);
-      }) // .attr("height", 10)
-      .attr("height", function (d) {
+      }).attr("height", function (d) {
         return y_scale(d.X2) - y_scale(d.X9);
-      }) // .attr("height", d => y_scale(d.X9) - y_scale(d.X2))
-      // .attr("y", height / 2)
-      // .attr("height", height / 2)
-      .attr("fill", function (d) {
+      }).attr("fill", function (d) {
         return _this3.state.selected_span === d.ChromAndSpan ? "rgb(190, 190, 250)" : "rgb(200, 255, 200)";
-      }) // .attr("fill", "rgb(200, 255, 200)")
-      .attr("stroke-width", 1).attr("stroke", "green");
+      }).attr("stroke-width", 1).attr("stroke", "green");
       spans.select("rect.mode_line").attr("y", function (d) {
         return y_scale(parseFloat(d.mode));
       }).attr("height", 2);
@@ -64408,6 +64435,11 @@ function (_React$Component) {
         }).attr("x", function (d) {
           return x_scale(d.start);
         });
+        spans.select("rect.pathogenic_variants").transition().attr("width", function (d) {
+          return x_scale(d.end) - x_scale(d.start);
+        }).attr("x", function (d) {
+          return x_scale(d.start);
+        });
       } else {
         spans.select("rect.bar").transition().attr("width", function (d) {
           return x_scale(d.len);
@@ -64416,6 +64448,11 @@ function (_React$Component) {
           return x_scale(res);
         });
         spans.select("rect.mode_line").transition().attr("width", function (d) {
+          return x_scale(d.len);
+        }).attr("x", function (d) {
+          return x_scale(d.running_x);
+        });
+        spans.select("rect.pathogenic_variants").transition().attr("width", function (d) {
           return x_scale(d.len);
         }).attr("x", function (d) {
           return x_scale(d.running_x);
