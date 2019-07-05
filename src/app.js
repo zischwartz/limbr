@@ -4,8 +4,8 @@ const path_to_domain_data = require("../data/DomainsScoresAndPercentilesPathogen
 
 let graph_config = {
   width: 1000,
-  height: 300,
-  margin: { left: 40, right: 20, top: 20, bottom: 20 }
+  height: 350,
+  margin: { left: 40, right: 20, top: 20, bottom: 140 }
 };
 graph_config.width =
   graph_config.width - graph_config.margin.left - graph_config.margin.right;
@@ -46,6 +46,11 @@ export default class App extends React.Component {
       .attr("id", "y_axis")
       .attr("transform", "translate(0," + 0 + ")")
       .attr("class", "axis axis--y");
+    this.svg_g
+      .append("g")
+      .attr("id", "second_y_axis")
+      // .attr("transform", "translate(0," + height + ")")
+      .attr("class", "axis axis--y");
 
     // XXX and just for debug
     // this.onGeneSelect("A1BG");
@@ -63,24 +68,24 @@ export default class App extends React.Component {
     let selected_data = this.state.data
       .filter(x => x["geneName"] === selected_gene)
       .map(x => {
-        let { geneName, sub_region, ChromAndSpan, mode } = x;
+        let { geneName, sub_region, ChromAndSpan, mode, ClinVar2Count } = x;
         let X2 = parseFloat(x["X2.5."]);
         let X9 = parseFloat(x["X97.5."]);
+        ClinVar2Count = parseInt(ClinVar2Count);
         let [start, end] = ChromAndSpan.split(":")[1]
           .split("-")
           .map(z => parseInt(z));
-        return { geneName, start, end, sub_region, mode, ChromAndSpan, X9, X2 };
+        // prettier-ignore
+        return { geneName, start, end, sub_region, mode, ChromAndSpan, ClinVar2Count, X9, X2 };
       })
       .sort((a, b) => {
         return a.start - b.start;
       })
       .map(x => {
         let len = x.end - x.start;
-        //   console.log(len);
         x["len"] = len;
         x["running_x"] = running_x;
         running_x += len;
-
         return x;
       });
 
@@ -94,12 +99,23 @@ export default class App extends React.Component {
     let ci_domain = d3.extent(all_ci);
 
     // https://bl.ocks.org/mbostock/3808221
-    let { width, height } = graph_config;
+    let { width, height, margin } = graph_config;
     let x_scale = d3.scaleLinear().range([0, width]);
     let y_scale = d3
       .scaleLinear()
       .range([height, 0])
       .domain(ci_domain);
+
+    let clinvar_extent = d3.extent(selected_data.map(z => z.ClinVar2Count));
+    // console.log(clinvar_extent);
+    // let second_y_range = [graph_config.margin.bottom - 10, 25];
+    let pad = 20;
+    let second_y_range = [height + margin.bottom, height + pad];
+    let second_y_scale = d3
+      .scaleLinear()
+      .range(second_y_range)
+      // .range([graph_config.margin.bottom - 10, 25])
+      .domain(clinvar_extent);
 
     if (absolute_mode) {
       x_scale.domain(points_domain);
@@ -115,10 +131,17 @@ export default class App extends React.Component {
       .select("#y_axis")
       .transition()
       .call(d3.axisLeft(y_scale));
+
+    this.svg_g
+      .select("#second_y_axis")
+      .transition()
+      .call(d3.axisLeft(second_y_scale));
+
     // DATA JOIN
     // Join new data with old elements, if any.
     let spans = this.svg_g
       .selectAll(".span")
+      // the function is an id function
       .data(selected_data, d => d.ChromAndSpan);
 
     // EXIT
@@ -142,6 +165,7 @@ export default class App extends React.Component {
     let spans_enter = spans.enter().append("g");
     spans_enter.append("rect").attr("class", "bar");
     spans_enter.append("rect").attr("class", "mode_line");
+    spans_enter.append("rect").attr("class", "pathogenic_variants");
     // enter + update
     spans = spans_enter.merge(spans).attr("class", "span");
 
@@ -152,23 +176,34 @@ export default class App extends React.Component {
         this.renderGraph()
       );
     });
-
+    // second_y_range
+    spans
+      .select("rect.pathogenic_variants")
+      .attr("y", d => second_y_scale(d.ClinVar2Count))
+      .attr("height", d => {
+        let c = d.ClinVar2Count;
+        // prettier-ignore
+        if (c === 0) { return 0 }
+        return second_y_scale(c);
+      })
+      .attr("stroke-width", 1)
+      .attr("stroke", "black")
+      .attr("fill", d =>
+        this.state.selected_span === d.ChromAndSpan
+          ? "rgb(150, 140, 200)"
+          : "rgb(130, 205, 220)"
+      );
     spans
       .select("rect.bar")
       .attr("y", d => y_scale(d.X9))
-      // .attr("height", 10)
       .attr("height", d => {
         return y_scale(d.X2) - y_scale(d.X9);
       })
-      // .attr("height", d => y_scale(d.X9) - y_scale(d.X2))
-      // .attr("y", height / 2)
-      // .attr("height", height / 2)
       .attr("fill", d =>
         this.state.selected_span === d.ChromAndSpan
           ? "rgb(190, 190, 250)"
           : "rgb(200, 255, 200)"
       )
-      // .attr("fill", "rgb(200, 255, 200)")
       .attr("stroke-width", 1)
       .attr("stroke", "green");
 
@@ -193,6 +228,15 @@ export default class App extends React.Component {
           return x_scale(d.end) - x_scale(d.start);
         })
         .attr("x", d => x_scale(d.start));
+
+      spans
+        .select("rect.pathogenic_variants")
+        .transition()
+
+        .attr("width", d => {
+          return x_scale(d.end) - x_scale(d.start);
+        })
+        .attr("x", d => x_scale(d.start));
     } else {
       spans
         .select("rect.bar")
@@ -207,6 +251,14 @@ export default class App extends React.Component {
 
       spans
         .select("rect.mode_line")
+        .transition()
+        .attr("width", d => {
+          return x_scale(d.len);
+        })
+        .attr("x", d => x_scale(d.running_x));
+
+      spans
+        .select("rect.pathogenic_variants")
         .transition()
         .attr("width", d => {
           return x_scale(d.len);
