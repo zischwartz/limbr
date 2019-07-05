@@ -64178,9 +64178,9 @@ function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _d
 
 function _possibleConstructorReturn(self, call) { if (call && (_typeof(call) === "object" || typeof call === "function")) { return call; } return _assertThisInitialized(self); }
 
-function _assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
-
 function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return _getPrototypeOf(o); }
+
+function _assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function"); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, writable: true, configurable: true } }); if (superClass) _setPrototypeOf(subClass, superClass); }
 
@@ -64218,6 +64218,7 @@ function (_React$Component) {
       selected_gene: false,
       absolute_mode: true
     };
+    _this.renderGraph = _this.renderGraph.bind(_assertThisInitialized(_this));
     return _this;
   }
 
@@ -64227,6 +64228,8 @@ function (_React$Component) {
       var _componentDidMount = _asyncToGenerator(
       /*#__PURE__*/
       regeneratorRuntime.mark(function _callee() {
+        var _this2 = this;
+
         var data, gene_names, width, height, margin, svg;
         return regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
@@ -64250,12 +64253,17 @@ function (_React$Component) {
                 this.svg_g.append("g").attr("id", "x_axis").attr("transform", "translate(0," + height + ")").attr("class", "axis axis--x");
                 this.svg_g.append("g").attr("id", "y_axis").attr("transform", "translate(0," + 0 + ")").attr("class", "axis axis--y");
                 this.svg_g.append("g").attr("id", "second_y_axis") // .attr("transform", "translate(0," + height + ")")
-                .attr("class", "axis axis--y"); // XXX and just for debug
-                // this.onGeneSelect("A1BG");
+                .attr("class", "axis axis--y"); // XXX and just for debug / fun, select this one
+                // and switch to absolute after one second
 
-                this.onGeneSelect("SCN1A"); // console.log(gene_names);
+                this.onGeneSelect("SCN1A");
+                setTimeout(function () {
+                  _this2.setState({
+                    absolute_mode: !_this2.state.absolute_mode
+                  }, _this2.renderGraph);
+                }, 1000); // console.log(gene_names);
 
-              case 13:
+              case 14:
               case "end":
                 return _context.stop();
             }
@@ -64270,19 +64278,19 @@ function (_React$Component) {
   }, {
     key: "onGeneSelect",
     value: function onGeneSelect(selected_gene) {
-      var _this2 = this;
+      var _this3 = this;
 
       // console.log(selected_gene);
       this.setState({
         selected_gene: selected_gene
       }, function () {
-        return _this2.renderGraph();
+        return _this3.renderGraph();
       });
     }
   }, {
     key: "renderGraph",
     value: function renderGraph() {
-      var _this3 = this;
+      var _this4 = this;
 
       // console.log(selected_gene);
       var _this$state = this.state,
@@ -64351,11 +64359,11 @@ function (_React$Component) {
       var y_scale = d3.scaleLinear().range([height, 0]).domain(ci_domain);
       var clinvar_extent = d3.extent(selected_data.map(function (z) {
         return z.ClinVar2Count;
-      })); // console.log(clinvar_extent);
+      }));
+      clinvar_extent[0] = 0; // console.log(clinvar_extent);
       // let second_y_range = [graph_config.margin.bottom - 10, 25];
 
-      var pad = 20;
-      var second_y_range = [height + margin.bottom, height + pad];
+      var second_y_range = [height + margin.bottom - 10, height + 20];
       var second_y_scale = d3.scaleLinear().range(second_y_range) // .range([graph_config.margin.bottom - 10, 25])
       .domain(clinvar_extent);
 
@@ -64393,10 +64401,10 @@ function (_React$Component) {
       // maybe need to rerender graph
 
       spans.on("click", function (d) {
-        _this3.setState({
+        _this4.setState({
           selected_span: d.ChromAndSpan
         }, function () {
-          return _this3.renderGraph();
+          return _this4.renderGraph();
         });
       }); // second_y_range
 
@@ -64411,14 +64419,14 @@ function (_React$Component) {
 
         return second_y_scale(c);
       }).attr("stroke-width", 1).attr("stroke", "black").attr("fill", function (d) {
-        return _this3.state.selected_span === d.ChromAndSpan ? "rgb(150, 140, 200)" : "rgb(130, 205, 220)";
+        return _this4.state.selected_span === d.ChromAndSpan ? "rgb(150, 140, 200)" : "rgb(130, 205, 220)";
       });
       spans.select("rect.bar").attr("y", function (d) {
         return y_scale(d.X9);
       }).attr("height", function (d) {
         return y_scale(d.X2) - y_scale(d.X9);
       }).attr("fill", function (d) {
-        return _this3.state.selected_span === d.ChromAndSpan ? "rgb(190, 190, 250)" : "rgb(200, 255, 200)";
+        return _this4.state.selected_span === d.ChromAndSpan ? "rgb(190, 190, 250)" : "rgb(200, 255, 200)";
       }).attr("stroke-width", 1).attr("stroke", "green");
       spans.select("rect.mode_line").attr("y", function (d) {
         return y_scale(parseFloat(d.mode));
@@ -64462,7 +64470,7 @@ function (_React$Component) {
   }, {
     key: "render",
     value: function render() {
-      var _this4 = this;
+      var _this5 = this;
 
       // prettier-ignore
       var _this$state2 = this.state,
@@ -64490,7 +64498,7 @@ function (_React$Component) {
         items: gene_names,
         width: "50%",
         onChange: function onChange(selected) {
-          return _this4.onGeneSelect(selected);
+          return _this5.onGeneSelect(selected);
         },
         placeholder: "Gene",
         selectedItem: selected_gene,
@@ -64505,10 +64513,10 @@ function (_React$Component) {
         intent: absolute_mode ? "none" : "success",
         onClick: function onClick() {
           // probs need to trigger a rerender of the graph
-          _this4.setState({
+          _this5.setState({
             absolute_mode: !absolute_mode
           }, function () {
-            _this4.renderGraph();
+            _this5.renderGraph();
           });
         }
       }, absolute_mode ? "Absolute Mode" : "Show Introns")), React.createElement(_evergreenUi.Pane, {
@@ -64648,7 +64656,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "62632" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "50330" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
