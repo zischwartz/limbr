@@ -47,7 +47,9 @@ export default class App extends React.Component {
       .attr("transform", "translate(0," + 0 + ")")
       .attr("class", "axis axis--y");
 
-    this.onGeneSelect("A1BG");
+    // XXX and just for debug
+    // this.onGeneSelect("A1BG");
+    this.onGeneSelect("SCN1A");
     // console.log(gene_names);
   }
   onGeneSelect(selected_gene) {
@@ -143,6 +145,14 @@ export default class App extends React.Component {
     // enter + update
     spans = spans_enter.merge(spans).attr("class", "span");
 
+    // console.log("x");
+    // maybe need to rerender graph
+    spans.on("click", d => {
+      this.setState({ selected_span: d.ChromAndSpan }, () =>
+        this.renderGraph()
+      );
+    });
+
     spans
       .select("rect.bar")
       .attr("y", d => y_scale(d.X9))
@@ -153,7 +163,12 @@ export default class App extends React.Component {
       // .attr("height", d => y_scale(d.X9) - y_scale(d.X2))
       // .attr("y", height / 2)
       // .attr("height", height / 2)
-      .attr("fill", "rgb(200, 255, 200)")
+      .attr("fill", d =>
+        this.state.selected_span === d.ChromAndSpan
+          ? "rgb(190, 190, 250)"
+          : "rgb(200, 255, 200)"
+      )
+      // .attr("fill", "rgb(200, 255, 200)")
       .attr("stroke-width", 1)
       .attr("stroke", "green");
 
@@ -200,7 +215,8 @@ export default class App extends React.Component {
     }
   }
   render() {
-    let { data, gene_names, selected_gene, absolute_mode } = this.state;
+    // prettier-ignore
+    let { data, gene_names, selected_gene, absolute_mode, selected_span } = this.state;
     if (!gene_names) {
       return LoadingPane;
     }
@@ -246,7 +262,11 @@ export default class App extends React.Component {
             <div ref={this.graph_ref} />
           </Pane>
         </Pane>
-        <Table data={data} selected_gene={selected_gene} />
+        <Table
+          data={data}
+          selected_gene={selected_gene}
+          selected_span={selected_span}
+        />
       </Pane>
     );
   }
@@ -270,7 +290,12 @@ function Table(props) {
     .filter(x => x["geneName"] === props.selected_gene)
     .map((x, i) => {
       return (
-        <tr key={i}>
+        <tr
+          key={i}
+          className={
+            props.selected_span === x.ChromAndSpan ? "selected_span" : ""
+          }
+        >
           {keys.map((z, j) => {
             return (
               <td key={j}>

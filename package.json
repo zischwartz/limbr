@@ -17,7 +17,8 @@
     "gh-pages": "^1.2.0",
     "parcel-globals": "^0.2.3",
     "react": "^16.8.6",
-    "react-dom": "^16.8.6"
+    "react-dom": "^16.8.6",
+    "react-enroute": "^3.0.2"
   },
   "alias": {
     "d3": ".parcel-globals/d3.js",
