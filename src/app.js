@@ -21,6 +21,7 @@ export default class App extends React.Component {
       selected_gene: false,
       absolute_mode: true
     };
+    this.renderGraph = this.renderGraph.bind(this);
   }
   async componentDidMount() {
     let data = await d3.tsv(path_to_domain_data);
@@ -52,9 +53,16 @@ export default class App extends React.Component {
       // .attr("transform", "translate(0," + height + ")")
       .attr("class", "axis axis--y");
 
-    // XXX and just for debug
-    // this.onGeneSelect("A1BG");
+    // XXX and just for debug / fun, select this one
+    // and switch to absolute after one second
     this.onGeneSelect("SCN1A");
+    setTimeout(() => {
+      this.setState(
+        { absolute_mode: !this.state.absolute_mode },
+        this.renderGraph
+      );
+    }, 1000);
+
     // console.log(gene_names);
   }
   onGeneSelect(selected_gene) {
@@ -107,10 +115,11 @@ export default class App extends React.Component {
       .domain(ci_domain);
 
     let clinvar_extent = d3.extent(selected_data.map(z => z.ClinVar2Count));
+    clinvar_extent[0] = 0;
     // console.log(clinvar_extent);
     // let second_y_range = [graph_config.margin.bottom - 10, 25];
-    let pad = 20;
-    let second_y_range = [height + margin.bottom, height + pad];
+
+    let second_y_range = [height + margin.bottom - 10, height + 20];
     let second_y_scale = d3
       .scaleLinear()
       .range(second_y_range)
