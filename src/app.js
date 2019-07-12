@@ -19,7 +19,9 @@ export default class App extends React.Component {
     this.state = {
       gene_names: false,
       selected_gene: false,
-      absolute_mode: true
+      absolute_mode: true,
+      data:false,
+      percentileMode:false
     };
     this.renderGraph = this.renderGraph.bind(this);
   }
@@ -27,7 +29,7 @@ export default class App extends React.Component {
     let data = await d3.tsv(path_to_domain_data);
     let gene_names = get_unique_gene_names(data);
     this.setState({ data, gene_names });
-
+    console.log(data)
     let { width, height, margin } = graph_config;
     let svg = d3.select(this.graph_ref.current).append("svg");
     svg
@@ -41,7 +43,7 @@ export default class App extends React.Component {
       .append("g")
       .attr("id", "x_axis")
       .attr("transform", "translate(0," + height + ")")
-      .attr("class", "axis axis--x");
+      .attr("class", "axis axis--x")
     this.svg_g
       .append("g")
       .attr("id", "y_axis")
@@ -52,6 +54,35 @@ export default class App extends React.Component {
       .attr("id", "second_y_axis")
       // .attr("transform", "translate(0," + height + ")")
       .attr("class", "axis axis--y");
+////////////////      
+//tring to label
+////////////////  
+    this.svg_g
+      .append("text")
+      .attr("class", "x label")
+      //.attr("transform", "translate(" + (width / 2) + " ," + (height + margin.bottom) + ")")
+      .attr("y", 0 + height + margin.bottom+10) //margin.left)
+      .attr("x",0 + (8 * margin.left))
+      .attr("text-anchor", "middle")
+      .text("Position")
+//trying to label
+    this.svg_g
+        .append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("dy", "1em")
+        .attr("y", 0 - margin.left)
+        .attr("x",0 - (height / 2))
+        .style("text-anchor", "middle")
+        .text("Score");
+    this.svg_g
+        .append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("dy", "1em")
+        .attr("y", 0 - margin.left)
+        .attr("x",0 - (1.4 * height))
+        .style("text-anchor", "middle")
+        .text("Pathogenic Count");
+////////////////  ////////////////  ////////////////  ////////////////  
 
     // XXX and just for debug / fun, select this one
     // and switch to absolute after one second
@@ -79,12 +110,13 @@ export default class App extends React.Component {
         let { geneName, sub_region, ChromAndSpan, mode, ClinVar2Count } = x;
         let X2 = parseFloat(x["X2.5."]);
         let X9 = parseFloat(x["X97.5."]);
+        let percentiles = parseFloat(x.percentiles);
         ClinVar2Count = parseInt(ClinVar2Count);
         let [start, end] = ChromAndSpan.split(":")[1]
           .split("-")
           .map(z => parseInt(z));
         // prettier-ignore
-        return { geneName, start, end, sub_region, mode, ChromAndSpan, ClinVar2Count, X9, X2 };
+        return { geneName, start, end, sub_region, mode, ChromAndSpan, ClinVar2Count, X9, X2 , percentiles};
       })
       .sort((a, b) => {
         return a.start - b.start;
@@ -109,7 +141,9 @@ export default class App extends React.Component {
     // https://bl.ocks.org/mbostock/3808221
     let { width, height, margin } = graph_config;
     let x_scale = d3.scaleLinear().range([0, width]);
-    let y_scale = d3
+    let y_scale = this.state.percentileMode ? d3.scaleLinear()
+      .range([height, 0])
+      .domain([0, 100]) : d3
       .scaleLinear()
       .range([height, 0])
       .domain(ci_domain);
@@ -213,12 +247,19 @@ export default class App extends React.Component {
           ? "rgb(190, 190, 250)"
           : "rgb(200, 255, 200)"
       )
-      .attr("stroke-width", 1)
-      .attr("stroke", "green");
+       // .attr("stroke-width", 1)
+       // .attr("stroke", "grey");
 
     spans
-      .select("rect.mode_line")
-      .attr("y", d => y_scale(parseFloat(d.mode)))
+      .select("rect.mode_line" )
+      // .attr("y", d => y_scale(parseFloat(d.mode)))
+      .attr("y", d => {
+        if (this.state.percentileMode){
+          return y_scale(parseFloat(d.percentiles))
+        } else {
+          return y_scale(parseFloat(d.mode))
+        }
+      })
       .attr("height", 2);
 
     if (absolute_mode) {
@@ -274,10 +315,16 @@ export default class App extends React.Component {
         })
         .attr("x", d => x_scale(d.running_x));
     }
+    if (this.state.percentileMode){
+      spans
+        .select("rect.bar")
+        .transition()
+        .attr("height",0)
+    }
   }
   render() {
     // prettier-ignore
-    let { data, gene_names, selected_gene, absolute_mode, selected_span } = this.state;
+    let { data, gene_names, selected_gene, absolute_mode, selected_span, percentileMode } = this.state;
     if (!gene_names) {
       return LoadingPane;
     }
@@ -304,6 +351,21 @@ export default class App extends React.Component {
                 title: "Gene"
               }}
             />
+          <Button
+          appearance="primary"
+              width="20%"
+              intent={percentileMode ? "none" : "danger"}
+              onClick={() => {
+                // probs need to trigger a rerender of the graph
+                this.setState({ percentileMode: !percentileMode }, () => {
+                  this.renderGraph();
+                });
+              }}
+            >
+              {percentileMode ? "Percent Mode" : "Raw mode yo"}
+          </Button>
+
+
             <Button
               appearance="primary"
               width="20%"
