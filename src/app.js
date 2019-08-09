@@ -2,6 +2,8 @@ import { Button, Combobox, Pane, Heading, Text, Spinner } from "evergreen-ui";
 
 const path_to_domain_data = require("../data/DomainsScoresAndPercentilesPathogenic_7-3-19.txt");
 
+const path_to_exon_data = require("../data/ExonsScoresAndPercentilesPathogenic_7-3-19.txt");
+
 let graph_config = {
   width: 1000,
   height: 350,
@@ -27,6 +29,7 @@ export default class App extends React.Component {
   }
   async componentDidMount() {
     let data = await d3.tsv(path_to_domain_data);
+    //let data = await d3.tsv(path_to_exon_data);
     let gene_names = get_unique_gene_names(data);
     this.setState({ data, gene_names });
     console.log(data)
@@ -105,18 +108,21 @@ export default class App extends React.Component {
     let { selected_gene, absolute_mode } = this.state;
     let running_x = 0;
     let selected_data = this.state.data
-      .filter(x => x["geneName"] === selected_gene)
+      .filter(x => x["Gene"] === selected_gene)
       .map(x => {
-        let { geneName, sub_region, ChromAndSpan, mode, ClinVar2Count } = x;
-        let X2 = parseFloat(x["X2.5."]);
-        let X9 = parseFloat(x["X97.5."]);
-        let percentiles = parseFloat(x.percentiles);
-        ClinVar2Count = parseInt(ClinVar2Count);
-        let [start, end] = ChromAndSpan.split(":")[1]
+        let { Gene, Position } = x;
+        let X2 = parseFloat(x["2.5%"]);
+        let X9 = parseFloat(x["97.5%"]);
+        let rawScore =  parseFloat(x["Raw Score"]);
+        let subRegion =  parseFloat(x["Sub-region"]);
+        let percentiles = parseFloat(x.Percentiles);
+        let PathogenicCount =  parseFloat(x["Pathogenic Count"]);
+        let [start, end] = Position.split(":")[1]
           .split("-")
           .map(z => parseInt(z));
         // prettier-ignore
-        return { geneName, start, end, sub_region, mode, ChromAndSpan, ClinVar2Count, X9, X2 , percentiles};
+        //return { geneName, start, end, sub_region, mode, ChromAndSpan, ClinVar2Count, X9, X2 , percentiles};
+        return { Gene, start, end, subRegion, rawScore, Position, PathogenicCount, X9, X2 , percentiles};
       })
       .sort((a, b) => {
         return a.start - b.start;
@@ -148,7 +154,7 @@ export default class App extends React.Component {
       .range([height, 0])
       .domain(ci_domain);
 
-    let clinvar_extent = d3.extent(selected_data.map(z => z.ClinVar2Count));
+    let clinvar_extent = d3.extent(selected_data.map(z => z.PathogenicCount));
     clinvar_extent[0] = 0;
     // console.log(clinvar_extent);
     // let second_y_range = [graph_config.margin.bottom - 10, 25];
@@ -185,7 +191,7 @@ export default class App extends React.Component {
     let spans = this.svg_g
       .selectAll(".span")
       // the function is an id function
-      .data(selected_data, d => d.ChromAndSpan);
+      .data(selected_data, d => d.Position);
 
     // EXIT
     let spans_exit = spans.exit();
@@ -215,26 +221,26 @@ export default class App extends React.Component {
     // console.log("x");
     // maybe need to rerender graph
     spans.on("click", d => {
-      this.setState({ selected_span: d.ChromAndSpan }, () =>
+      this.setState({ selected_span: d.Position }, () =>
         this.renderGraph()
       );
     });
     // second_y_range
     spans
       .select("rect.pathogenic_variants")
-      .attr("y", d => second_y_scale(d.ClinVar2Count))
+      .attr("y", d => second_y_scale(d.PathogenicCount))
       .attr("height", d => {
-        let c = d.ClinVar2Count;
+        let c = d.PathogenicCount;
         // prettier-ignore
         if (c === 0) { return 0 }
         return second_y_scale(c);
       })
-      .attr("stroke-width", 1)
-      .attr("stroke", "black")
+      // .attr("stroke-width", 1)
+      // .attr("stroke", "black")
       .attr("fill", d =>
-        this.state.selected_span === d.ChromAndSpan
+        this.state.selected_span === d.Position
           ? "rgb(150, 140, 200)"
-          : "rgb(130, 205, 220)"
+          : "rgb(102, 179, 255)" //"rgb(130, 205, 220)"
       );
     spans
       .select("rect.bar")
@@ -243,9 +249,9 @@ export default class App extends React.Component {
         return y_scale(d.X2) - y_scale(d.X9);
       })
       .attr("fill", d =>
-        this.state.selected_span === d.ChromAndSpan
-          ? "rgb(190, 190, 250)"
-          : "rgb(200, 255, 200)"
+        this.state.selected_span === d.Position
+          ?  "rgb(190, 190, 250)"
+          : "rgb(217, 217, 217)" //"rgb(200, 255, 200)"
       )
        // .attr("stroke-width", 1)
        // .attr("stroke", "grey");
@@ -257,7 +263,7 @@ export default class App extends React.Component {
         if (this.state.percentileMode){
           return y_scale(parseFloat(d.percentiles))
         } else {
-          return y_scale(parseFloat(d.mode))
+          return y_scale(parseFloat(d.rawScore))
         }
       })
       .attr("height", 2);
@@ -278,7 +284,6 @@ export default class App extends React.Component {
           return x_scale(d.end) - x_scale(d.start);
         })
         .attr("x", d => x_scale(d.start));
-
       spans
         .select("rect.pathogenic_variants")
         .transition()
@@ -320,6 +325,8 @@ export default class App extends React.Component {
         .select("rect.bar")
         .transition()
         .attr("height",0)
+
+
     }
   }
   render() {
@@ -334,8 +341,9 @@ export default class App extends React.Component {
           position="sticky"
           top={2}
           padding={8}
-          background="tint1"
-          borderBottom
+          background="white"
+          //background="tint1"
+          //borderBottom
           marginBottom={8}
         >
           <Pane display="flex" flexDirection="row">
@@ -351,6 +359,8 @@ export default class App extends React.Component {
                 title: "Gene"
               }}
             />
+          
+          
           <Button
           appearance="primary"
               width="20%"
@@ -362,9 +372,8 @@ export default class App extends React.Component {
                 });
               }}
             >
-              {percentileMode ? "Percent Mode" : "Raw mode yo"}
+              {percentileMode ? "Plot Raw Scores" : "Plot Percentages"}
           </Button>
-
 
             <Button
               appearance="primary"
@@ -377,8 +386,12 @@ export default class App extends React.Component {
                 });
               }}
             >
-              {absolute_mode ? "Absolute Mode" : "Show Introns"}
+              {absolute_mode ? "Remove Introns" : "Show Introns"}
             </Button>
+
+
+
+
           </Pane>
 
           <Pane display="flex" justifyContent="center">
@@ -404,19 +417,19 @@ function round_helper(d) {
   }
 }
 
-let keys_to_round = ["mode", "percentiles", "X2.5.", "X97.5."];
+let keys_to_round = ["Raw Score", "Percentiles", "2.5%", "97.5%"];
 function Table(props) {
   // prettier-ignore
   if (!props.selected_gene || !props.data) {return ``}
   let keys = Object.keys(props.data[0]);
   let content = props.data
-    .filter(x => x["geneName"] === props.selected_gene)
+    .filter(x => x["Gene"] === props.selected_gene)
     .map((x, i) => {
       return (
         <tr
           key={i}
           className={
-            props.selected_span === x.ChromAndSpan ? "selected_span" : ""
+            props.selected_span === x.Position ? "selected_span" : ""
           }
         >
           {keys.map((z, j) => {
@@ -449,7 +462,7 @@ function get_unique_gene_names(data) {
   let res = {};
 
   data.forEach(x => {
-    res[x["geneName"]] = true;
+    res[x["Gene"]] = true;
   });
   return Object.keys(res);
 }
