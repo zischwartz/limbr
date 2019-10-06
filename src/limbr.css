@@ -1,7 +1,13 @@
+@import url("https://fonts.googleapis.com/css?family=Roboto&display=swap");
 /* Add a black background color to the top navigation */
 .topnav {
   background-color: #333; /* #0040ff;*/
   overflow: hidden;
+  font-family: "Roboto", sans-serif;
+}
+
+svg {
+  font-family: "Roboto", sans-serif;
 }
 
 /* Style the links inside the navigation bar */
@@ -23,7 +29,7 @@
 
 /* Add a color to the active/current link */
 .topnav a.active {
-  background-color: #bfbfbf;
+  background-color: rgb(90, 90, 90);
   color: white;
 }
 

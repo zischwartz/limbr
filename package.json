@@ -5,7 +5,7 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "parcel src/index.html --no-autoinstall",
+    "start": "parcel src/*.html --no-autoinstall",
     "build": "NODE_ENV=production parcel build --no-autoinstall --public-url=./ src/index.html -o index.html",
     "jupyter": "docker run -it --rm -v $PWD/process:/home/jovyan/work --rm -p 8888:8888 jupyter/datascience-notebook start-notebook.sh --NotebookApp.token=''",
     "deploy": "gh-pages -d dist",

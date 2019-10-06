@@ -23,16 +23,22 @@ export default class App extends React.Component {
       selected_gene: false,
       absolute_mode: true,
       data: false,
-      percentileMode: false
+      percentileMode: false,
+      exon_mode: false
     };
     this.renderGraph = this.renderGraph.bind(this);
   }
+  async get_data(exon_mode) {
+    return exon_mode
+      ? await d3.tsv(path_to_exon_data)
+      : await await d3.tsv(path_to_domain_data);
+  }
   async componentDidMount() {
-    let data = await d3.tsv(path_to_domain_data);
-    //let data = await d3.tsv(path_to_exon_data);
+    let data = await this.get_data(this.state.exon_mode);
+
     let gene_names = get_unique_gene_names(data);
     this.setState({ data, gene_names });
-    console.log(data);
+
     let { width, height, margin } = graph_config;
     let svg = d3.select(this.graph_ref.current).append("svg");
     svg
@@ -334,7 +340,7 @@ export default class App extends React.Component {
   }
   render() {
     // prettier-ignore
-    let { data, gene_names, selected_gene, absolute_mode, selected_span, percentileMode } = this.state;
+    let { data, gene_names, selected_gene, absolute_mode, selected_span, percentileMode, exon_mode } = this.state;
     if (!gene_names) {
       return LoadingPane;
     }
@@ -365,10 +371,27 @@ export default class App extends React.Component {
 
             <Button
               appearance="primary"
+              intent={exon_mode ? "success" : "none"}
+              width="25%"
+              marginRight={8}
+              onClick={async () => {
+                exon_mode = !exon_mode;
+                let data = await this.get_data(exon_mode);
+                let gene_names = get_unique_gene_names(data);
+
+                this.setState({ data, gene_names, exon_mode }, () => {
+                  this.renderGraph();
+                });
+              }}
+            >
+              {exon_mode ? "Showing Exon Data" : "Showing Domain Data"}
+            </Button>
+            <Button
+              appearance="primary"
               width="20%"
               intent={percentileMode ? "none" : "danger"}
+              marginRight={8}
               onClick={() => {
-                // probs need to trigger a rerender of the graph
                 this.setState({ percentileMode: !percentileMode }, () => {
                   this.renderGraph();
                 });
