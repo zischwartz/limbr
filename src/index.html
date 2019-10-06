@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <link href="limbr.css" rel="stylesheet" type="text/css">
+    <!-- <link href="limbr.css" rel="stylesheet" type="text/css"> -->
     <meta charset="utf-8" />
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <!--
@@ -23,7 +23,7 @@
 
     <meta name="viewport" content="width=device-width" />
     <title>LIMBR</title>
- 
+
     <meta property="og:url" content="https://zischwartz.github.io/limbr" />
     <meta property="og:title" content="LIMBR" />
     <meta name="og:description" content="LIMBR Visualization Tool" />
@@ -84,40 +84,49 @@
     <!-- <link rel="icon" href="./favicon.ico" /> -->
   </head>
   <!-- Remember to make any changes in _dev -->
-  
 
-<div class="topnav">
-  <a class="active" href="index.html">LIMBR</a>  
-  <div class="topnav-right">
-    <a  href="about.html">About</a>
-    <a href="#Data">Data</a>
-    <a href="#git">git</a>
-    <a href="#contact">Contact</a>
+  <div class="topnav">
+    <a class="active" href="index.html">LIMBR</a>
+    <div class="topnav-right">
+      <a href="about.html">About</a>
+      <a href="#Data">Data</a>
+      <a href="#git">git</a>
+      <a href="#contact">Contact</a>
+    </div>
   </div>
-</div>
-
 
   <body>
     <div id="root"></div>
-    
-    <div class=tab>
-    <h2> LIMBR</h2>
-    <p>
-      Localized Intolerance Model using Bayesian Regression (LIMBR) is a sub-regional (domains or exons) genic intolerance score. Above is a per gene plot where on top is the 
-      intolerance score, where lower raw score or percentile scores indicates that a region is less intolerant to variation and more likely to be under negative selection. On bottom are the total ClinVar pathogenic variants across each sub-region. 
-    </p>
-    <p>
-      For more details please see <a href="about.html">about</a> or our article: <a href="https://www.sciencedirect.com/science/article/pii/S0002929718305032">Improved pathogenic variant localization via a hierarchical model of sub-regional intolerance</a>
-    </p>
-    <h3>Reference</h3>
-    <p>
-      Hayeck, T. J., Stong, N., Wolock, C. J., Copeland, B., Kamalakaran, S., Goldstein, D. B., & Allen, A. S. (2019). Improved pathogenic variant localization via a hierarchical model of sub-regional intolerance. The American Journal of Human Genetics, 104(2), 299-309.
-    </p>
-  </div>
-    
 
+    <div class="tab">
+      <h2>LIMBR</h2>
+      <p>
+        Localized Intolerance Model using Bayesian Regression (LIMBR) is a
+        sub-regional (domains or exons) genic intolerance score. Above is a per
+        gene plot where on top is the intolerance score, where lower raw score
+        or percentile scores indicates that a region is less intolerant to
+        variation and more likely to be under negative selection. On bottom are
+        the total ClinVar pathogenic variants across each sub-region.
+      </p>
+      <p>
+        For more details please see <a href="about.html">about</a> or our
+        article:
+        <a
+          href="https://www.sciencedirect.com/science/article/pii/S0002929718305032"
+          >Improved pathogenic variant localization via a hierarchical model of
+          sub-regional intolerance</a
+        >
+      </p>
+      <h3>Reference</h3>
+      <p>
+        Hayeck, T. J., Stong, N., Wolock, C. J., Copeland, B., Kamalakaran, S.,
+        Goldstein, D. B., & Allen, A. S. (2019). Improved pathogenic variant
+        localization via a hierarchical model of sub-regional intolerance. The
+        American Journal of Human Genetics, 104(2), 299-309.
+      </p>
+    </div>
   </body>
-  
+
   <!-- DEV -->
   <!-- prettier-ignore -->
   <script crossorigin src="https://unpkg.com/react@16.8.6/umd/react.development.js"></script>

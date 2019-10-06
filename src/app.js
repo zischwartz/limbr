@@ -1,8 +1,8 @@
 import { Button, Combobox, Pane, Heading, Text, Spinner } from "evergreen-ui";
 
-const path_to_domain_data = require("../data/DomainsScoresAndPercentilesPathogenic_7-3-19.txt");
+const path_to_domain_data = require("../data/DomainScoresAndPercentilesPathogenic_8-6-19.txt");
 
-const path_to_exon_data = require("../data/ExonsScoresAndPercentilesPathogenic_7-3-19.txt");
+const path_to_exon_data = require("../data/ExonScoresAndPercentilesPathogenic_8-6-19.txt");
 
 let graph_config = {
   width: 1000,
@@ -22,8 +22,8 @@ export default class App extends React.Component {
       gene_names: false,
       selected_gene: false,
       absolute_mode: true,
-      data:false,
-      percentileMode:false
+      data: false,
+      percentileMode: false
     };
     this.renderGraph = this.renderGraph.bind(this);
   }
@@ -32,7 +32,7 @@ export default class App extends React.Component {
     //let data = await d3.tsv(path_to_exon_data);
     let gene_names = get_unique_gene_names(data);
     this.setState({ data, gene_names });
-    console.log(data)
+    console.log(data);
     let { width, height, margin } = graph_config;
     let svg = d3.select(this.graph_ref.current).append("svg");
     svg
@@ -46,7 +46,7 @@ export default class App extends React.Component {
       .append("g")
       .attr("id", "x_axis")
       .attr("transform", "translate(0," + height + ")")
-      .attr("class", "axis axis--x")
+      .attr("class", "axis axis--x");
     this.svg_g
       .append("g")
       .attr("id", "y_axis")
@@ -57,35 +57,35 @@ export default class App extends React.Component {
       .attr("id", "second_y_axis")
       // .attr("transform", "translate(0," + height + ")")
       .attr("class", "axis axis--y");
-////////////////      
-//tring to label
-////////////////  
+    ////////////////
+    //tring to label
+    ////////////////
     this.svg_g
       .append("text")
       .attr("class", "x label")
       //.attr("transform", "translate(" + (width / 2) + " ," + (height + margin.bottom) + ")")
-      .attr("y", 0 + height + margin.bottom+10) //margin.left)
-      .attr("x",0 + (8 * margin.left))
+      .attr("y", 0 + height + margin.bottom + 10) //margin.left)
+      .attr("x", 0 + 8 * margin.left)
       .attr("text-anchor", "middle")
-      .text("Position")
-//trying to label
+      .text("Position");
+    //trying to label
     this.svg_g
-        .append("text")
-        .attr("transform", "rotate(-90)")
-        .attr("dy", "1em")
-        .attr("y", 0 - margin.left)
-        .attr("x",0 - (height / 2))
-        .style("text-anchor", "middle")
-        .text("Score");
+      .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("dy", "1em")
+      .attr("y", 0 - margin.left)
+      .attr("x", 0 - height / 2)
+      .style("text-anchor", "middle")
+      .text("Score");
     this.svg_g
-        .append("text")
-        .attr("transform", "rotate(-90)")
-        .attr("dy", "1em")
-        .attr("y", 0 - margin.left)
-        .attr("x",0 - (1.4 * height))
-        .style("text-anchor", "middle")
-        .text("Pathogenic Count");
-////////////////  ////////////////  ////////////////  ////////////////  
+      .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("dy", "1em")
+      .attr("y", 0 - margin.left)
+      .attr("x", 0 - 1.4 * height)
+      .style("text-anchor", "middle")
+      .text("Pathogenic Count");
+    ////////////////  ////////////////  ////////////////  ////////////////
 
     // XXX and just for debug / fun, select this one
     // and switch to absolute after one second
@@ -113,10 +113,10 @@ export default class App extends React.Component {
         let { Gene, Position } = x;
         let X2 = parseFloat(x["2.5%"]);
         let X9 = parseFloat(x["97.5%"]);
-        let rawScore =  parseFloat(x["Raw Score"]);
-        let subRegion =  parseFloat(x["Sub-region"]);
+        let rawScore = parseFloat(x["Raw Score"]);
+        let subRegion = parseFloat(x["Sub-region"]);
         let percentiles = parseFloat(x.Percentiles);
-        let PathogenicCount =  parseFloat(x["Pathogenic Count"]);
+        let PathogenicCount = parseFloat(x["Pathogenic Count"]);
         let [start, end] = Position.split(":")[1]
           .split("-")
           .map(z => parseInt(z));
@@ -147,12 +147,15 @@ export default class App extends React.Component {
     // https://bl.ocks.org/mbostock/3808221
     let { width, height, margin } = graph_config;
     let x_scale = d3.scaleLinear().range([0, width]);
-    let y_scale = this.state.percentileMode ? d3.scaleLinear()
-      .range([height, 0])
-      .domain([0, 100]) : d3
-      .scaleLinear()
-      .range([height, 0])
-      .domain(ci_domain);
+    let y_scale = this.state.percentileMode
+      ? d3
+          .scaleLinear()
+          .range([height, 0])
+          .domain([0, 100])
+      : d3
+          .scaleLinear()
+          .range([height, 0])
+          .domain(ci_domain);
 
     let clinvar_extent = d3.extent(selected_data.map(z => z.PathogenicCount));
     clinvar_extent[0] = 0;
@@ -221,9 +224,7 @@ export default class App extends React.Component {
     // console.log("x");
     // maybe need to rerender graph
     spans.on("click", d => {
-      this.setState({ selected_span: d.Position }, () =>
-        this.renderGraph()
-      );
+      this.setState({ selected_span: d.Position }, () => this.renderGraph());
     });
     // second_y_range
     spans
@@ -237,10 +238,12 @@ export default class App extends React.Component {
       })
       // .attr("stroke-width", 1)
       // .attr("stroke", "black")
-      .attr("fill", d =>
-        this.state.selected_span === d.Position
-          ? "rgb(150, 140, 200)"
-          : "rgb(102, 179, 255)" //"rgb(130, 205, 220)"
+      .attr(
+        "fill",
+        d =>
+          this.state.selected_span === d.Position
+            ? "rgb(150, 140, 200)"
+            : "rgb(102, 179, 255)" //"rgb(130, 205, 220)"
       );
     spans
       .select("rect.bar")
@@ -248,22 +251,24 @@ export default class App extends React.Component {
       .attr("height", d => {
         return y_scale(d.X2) - y_scale(d.X9);
       })
-      .attr("fill", d =>
-        this.state.selected_span === d.Position
-          ?  "rgb(190, 190, 250)"
-          : "rgb(217, 217, 217)" //"rgb(200, 255, 200)"
-      )
-       // .attr("stroke-width", 1)
-       // .attr("stroke", "grey");
+      .attr(
+        "fill",
+        d =>
+          this.state.selected_span === d.Position
+            ? "rgb(190, 190, 250)"
+            : "rgb(217, 217, 217)" //"rgb(200, 255, 200)"
+      );
+    // .attr("stroke-width", 1)
+    // .attr("stroke", "grey");
 
     spans
-      .select("rect.mode_line" )
+      .select("rect.mode_line")
       // .attr("y", d => y_scale(parseFloat(d.mode)))
       .attr("y", d => {
-        if (this.state.percentileMode){
-          return y_scale(parseFloat(d.percentiles))
+        if (this.state.percentileMode) {
+          return y_scale(parseFloat(d.percentiles));
         } else {
-          return y_scale(parseFloat(d.rawScore))
+          return y_scale(parseFloat(d.rawScore));
         }
       })
       .attr("height", 2);
@@ -320,13 +325,11 @@ export default class App extends React.Component {
         })
         .attr("x", d => x_scale(d.running_x));
     }
-    if (this.state.percentileMode){
+    if (this.state.percentileMode) {
       spans
         .select("rect.bar")
         .transition()
-        .attr("height",0)
-
-
+        .attr("height", 0);
     }
   }
   render() {
@@ -359,10 +362,9 @@ export default class App extends React.Component {
                 title: "Gene"
               }}
             />
-          
-          
-          <Button
-          appearance="primary"
+
+            <Button
+              appearance="primary"
               width="20%"
               intent={percentileMode ? "none" : "danger"}
               onClick={() => {
@@ -373,7 +375,7 @@ export default class App extends React.Component {
               }}
             >
               {percentileMode ? "Plot Raw Scores" : "Plot Percentages"}
-          </Button>
+            </Button>
 
             <Button
               appearance="primary"
@@ -388,10 +390,6 @@ export default class App extends React.Component {
             >
               {absolute_mode ? "Remove Introns" : "Show Introns"}
             </Button>
-
-
-
-
           </Pane>
 
           <Pane display="flex" justifyContent="center">
@@ -428,9 +426,7 @@ function Table(props) {
       return (
         <tr
           key={i}
-          className={
-            props.selected_span === x.Position ? "selected_span" : ""
-          }
+          className={props.selected_span === x.Position ? "selected_span" : ""}
         >
           {keys.map((z, j) => {
             return (
