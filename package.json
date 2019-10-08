@@ -6,9 +6,10 @@
   "license": "MIT",
   "scripts": {
     "start": "parcel src/*.html --no-autoinstall",
-    "build": "NODE_ENV=production parcel build --no-autoinstall --public-url=./ src/index.html -o index.html",
+    "build": "NODE_ENV=production parcel build --no-autoinstall --public-url=./ src/*.html ",
     "jupyter": "docker run -it --rm -v $PWD/process:/home/jovyan/work --rm -p 8888:8888 jupyter/datascience-notebook start-notebook.sh --NotebookApp.token=''",
     "deploy": "gh-pages -d dist",
+    "ship": "yarn build && yarn deploy",
     "todoprep": "cp src/screenshot.png dist/screenshot.png"
   },
   "dependencies": {
@@ -16,7 +17,6 @@
     "evergreen-ui": "^4.17.0",
     "gh-pages": "^1.2.0",
     "parcel-bundler": "^1.12.3",
-    "parcel-globals": "^0.2.3",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
     "react-enroute": "^3.0.2"
