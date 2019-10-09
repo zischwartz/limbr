@@ -1,0 +1,96 @@
+@import url("https://fonts.googleapis.com/css?family=Roboto&display=swap");
+/* Add a black background color to the top navigation */
+.topnav {
+  background-color: #333; /* #0040ff;*/
+  overflow: hidden;
+  font-family: "Roboto", sans-serif;
+}
+
+svg {
+  font-family: "Roboto", sans-serif;
+}
+
+/* Style the links inside the navigation bar */
+.topnav a {
+  float: left;
+  color: #f2f2f2;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+  font-size: 17px;
+}
+
+/* Change the color of links on hover */
+.topnav a:hover {
+  background-color: #111; /* #ddd;*/
+  /*color: black;*/
+  color: white;
+}
+
+/* Add a color to the active/current link */
+.topnav a.active {
+  background-color: rgb(90, 90, 90);
+  color: white;
+}
+
+/* Right-aligned section inside the top navigation */
+.topnav-right {
+  float: right;
+}
+
+.tab {
+  margin-left: 80px;
+  margin-right: 80px;
+}
+
+.center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 75%;
+}
+
+figcaption {
+  text-align: center;
+  font-style: italic;
+  font-size: smaller;
+}
+
+.equation {
+  text-align: center;
+  font-style: italic;
+}
+
+/* about page css */
+
+body,
+html {
+  margin: 0px;
+  padding: 0px;
+}
+table {
+  border-collapse: collapse;
+  letter-spacing: 1px;
+  font-family: sans-serif;
+  font-size: 0.8rem;
+}
+rect.bar,
+rect.pathogenic_variants {
+  cursor: pointer;
+}
+td,
+th {
+  border: 1px solid rgb(190, 190, 190);
+  padding: 5px 10px;
+}
+
+td {
+  text-align: center;
+}
+tr.selected_span {
+  background-color: rgb(190, 190, 250);
+  transition: all 0.3s ease;
+}
+
+
+/*# sourceMappingURL=/limbr.c3169f3c.css.map */
