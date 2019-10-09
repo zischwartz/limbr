@@ -91,3 +91,20 @@ tr.selected_span {
   background-color: rgb(190, 190, 250);
   transition: all 0.3s ease;
 }
+
+#zcred {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  font-size: 0.9em;
+  margin-top: 32px;
+  margin-bottom: 32px;
+  font-family: "Roboto", sans-serif;
+}
+
+#zcred div {
+  font-size: 0.9em;
+
+  margin-bottom: 5px;
+}

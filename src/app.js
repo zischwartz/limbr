@@ -28,12 +28,16 @@ export default class App extends React.Component {
     };
     this.renderGraph = this.renderGraph.bind(this);
   }
+
+  async cache_data() {
+    this.exon_data = await d3.tsv(path_to_exon_data);
+    this.domain_data = await d3.tsv(path_to_domain_data);
+  }
   async get_data(exon_mode) {
-    return exon_mode
-      ? await d3.tsv(path_to_exon_data)
-      : await await d3.tsv(path_to_domain_data);
+    return exon_mode ? this.exon_data : this.domain_data;
   }
   async componentDidMount() {
+    await this.cache_data();
     let data = await this.get_data(this.state.exon_mode);
 
     let gene_names = get_unique_gene_names(data);
