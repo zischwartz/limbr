@@ -13,7 +13,7 @@
     "todoprep": "cp src/screenshot.png dist/screenshot.png"
   },
   "dependencies": {
-    "d3": "^5.5.0",
+    "d3": "^7.6.1",
     "evergreen-ui": "^4.17.0",
     "gh-pages": "^1.2.0",
     "parcel-bundler": "^1.12.3",
